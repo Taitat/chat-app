@@ -12,17 +12,12 @@ RSpec.describe "メッセージ投稿機能", type: :system do
       sign_in(@room_user.user)
       # 作成されたチャットルームへ遷移する
       click_on(@room_user.room.name)
-      
       # DBに保存されていないことを期待する
-      
-      
       expect{
         find('input[name="commit"]').click
       }.not_to change { Message.count }
-        
       # 元のページに戻ってくることを期待する
       expect(current_path).to eq  room_messages_path(@room_user.room)
-      
     end
   end
 
@@ -30,62 +25,67 @@ RSpec.describe "メッセージ投稿機能", type: :system do
     it 'テキストの投稿に成功すると、投稿一覧に遷移して、投稿した内容が表示されている' do
       # サインインする
       sign_in(@room_user.user)
-     
+
       # 作成されたチャットルームへ遷移する
       click_on(@room_user.room.name)
 
       # 値をテキストフォームに入力する
       post = "テスト"
-      fill_in 'message.content', with: post
+      fill_in 'message_content', with: post
 
       # 送信した値がDBに保存されていることを期待する
       expect{
         find('input[name="commit"]').click
-      }.to change (Message.count).by(1)
+      }.to change { Message.count }.by(1)
+
       # 投稿一覧画面に遷移することを期待する
-      expect(current_path).to eq root_path
+      expect(current_path).to eq room_messages_path(@room_user.room)
+
       # 送信した値がブラウザに表示されていることを期待する
       expect(page).to have_content(post)
     end
+  
     it '画像の投稿に成功すると、投稿一覧に遷移して、投稿した画像が表示されている' do
+    # サインインする
+    sign_in(@room_user.user)
+
+    # 作成されたチャットルームへ遷移する
+    click_on(@room_user.room.name)
+
+    # 添付する画像を定義する
+    image_path = Rails.root.join('public/images/test_image.png')
+
+    # 画像選択フォームに画像を添付する
+    attach_file('message[image]', image_path, make_visible: true)
+
+    # 送信した値がDBに保存されていることを期待する
+    expect{
+      find('input[name="commit"]').click
+    }.to change { Message.count }.by(1)
+
+    # 投稿一覧画面に遷移することを期待する
+    expect(current_path).to eq room_messages_path(@room_user.room)
+
+    # 送信した画像がブラウザに表示されていることを期待する
+    expect(page).to have_selector("img")
+    end
+    it 'チャットルームを削除すると、関連するメッセージがすべて削除されていること' do
       # サインインする
       sign_in(@room_user.user)
-
+  
       # 作成されたチャットルームへ遷移する
       click_on(@room_user.room.name)
-
-      # 添付する画像を定義する
-      image_path = Rails.root.join('public/images/test_image.png')
-
-      # 画像選択フォームに画像を添付する
-
-      # 送信した値がDBに保存されていることを期待する
-
-      # 投稿一覧画面に遷移することを期待する
-
-      # 送信した画像がブラウザに表示されていることを期待する
-
+  
+      # メッセージ情報を5つDBに追加する
+      FactoryBot.create_list(:message, 5, room_id: @room_user.room.id, user_id: @room_user.user.id)
+  
+      # 「チャットを終了する」ボタンをクリックすることで、作成した5つのメッセージが削除されていることを期待する
+      expect{
+        find_link("チャットを終了する",  href: room_path(@room_user.room)).click
+      }.to change { @room_user.room.messages.count }.by(-5)
+  
+      # ルートページに遷移されることを期待する
+      expect(current_path).to eq root_path
     end
-    it 'テキストと画像の投稿に成功すること' do
-      # サインインする
-      sign_in(@room_user.user)
-
-      # 作成されたチャットルームへ遷移する
-      click_on(@room_user.room.name)
-
-      # 添付する画像を定義する
-      image_path = Rails.root.join('public/images/test_image.png')
-
-      # 画像選択フォームに画像を添付する
-
-      # 値をテキストフォームに入力する
-
-      # 送信した値がDBに保存されていることを期待する
-
-      # 送信した値がブラウザに表示されていることを期待する
-
-      # 送信した画像がブラウザに表示されていることを期待する
-
-    end
-  end
+end
 end
